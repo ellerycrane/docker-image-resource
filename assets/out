@@ -73,7 +73,7 @@ cache=$(jq -r '.params.cache' < $payload)
 
 dockerfile=$(jq -r '.params.dockerfile // ""' < $payload)
 
-load_base=$(jq -r '.params.load_base // ""' < $payload)
+load_base=$(jq -r '[.params.load_base] | flatten | .[] // ""' < $payload)
 
 load_file=$(jq -r '.params.load_file // ""' < $payload)
 load_repository=$(jq -r '.params.load_repository // ""' < $payload)
@@ -87,10 +87,14 @@ pull_tag=$(jq -r '.params.pull_tag // "latest"' < $payload)
 rootfs="$(jq -r '.params.rootfs' < $payload)"
 
 if [ -n "$load_base" ]; then
-  docker load -i "${load_base}/image"
-  docker tag \
-    "$(cat "${load_base}/image-id")" \
-    "$(cat "${load_base}/repository"):$(cat "${load_base}/tag")"
+  for base_name in $load_base
+  do
+    # Load all of the base images specified
+    docker load -i "${base_name}/image"
+    docker tag \
+      "$(cat "${base_name}/image-id")" \
+      "$(cat "${base_name}/repository"):$(cat "${base_name}/tag")"
+  done  
 fi
 
 if [ -n "$build" ]; then
