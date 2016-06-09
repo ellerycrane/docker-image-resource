@@ -1,4 +1,4 @@
-FROM concourse/busyboxplus:iptables
+FROM concourse/busyboxplus:git
 
 RUN for cert in `ls -1 /etc/ssl/certs/*.pem`; \
       do cat "$cert" >> /etc/ssl/certs/ca-certificates.crt; \
