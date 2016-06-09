@@ -35,6 +35,13 @@ password=$(jq -r '.source.password // ""' < $payload)
 email=$(jq -r '.source.email // ""' < $payload)
 repository=$(jq -r '.source.repository // ""' < $payload)
 
+build_cache_host=$(jq -r '.source.build_cache.host // ""' < $payload)
+build_cache_port=$(jq -r '.source.build_cache.port // ""' < $payload)
+build_cache_user=$(jq -r '.source.build_cache.user // ""' < $payload)
+build_cache_private_key=$(jq -r '.source.build_cache.private_key // ""' < $payload)
+build_cache_remote_path=$(jq -r '.source.build_cache.remote_path // ""' < $payload)
+
+load_pubkey $payload
 
 if private_registry "${repository}" ; then
   registry="$(extract_registry "${repository}")"
@@ -153,6 +160,22 @@ if [ "$need_tag_as_latest" = "true" ] && [ "${tag_name}" != "latest"  ]    ; the
   docker tag "${repository}:${tag_name}" "${repository}:latest"
   docker push "${repository}:latest"
   echo "${repository}:${tag_name} tagged as latest"
+fi
+
+if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
+  echo "Beginning docker save to preserve docker build cache."
+  start=`date +%s`
+  docker save $image_id $(docker history -q $image_id | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') > image-with-history.tar
+  end=`date +%s`
+  runtime=$((end-start))
+  echo "Finished docker save in ${runtime} seconds"
+  echo "Beginning scp of image with build cache to build cache server.."
+  start=`date +%s`
+  ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "mkdir -p ${build_cache_remote_path}/${digest}"
+  scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${digest}  
+  end=`date +%s`
+  runtime=$((end-start))
+  echo "Finished scp of image to the build cache server in ${runtime} seconds"  
 fi
 
 
