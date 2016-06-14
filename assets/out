@@ -192,3 +192,4 @@ if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build
 fi
 
 echo "Trying to finish the script now"
+exit 0
