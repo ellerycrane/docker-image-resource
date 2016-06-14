@@ -175,7 +175,10 @@ if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build
   scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${digest}  
   end=`date +%s`
   runtime=$((end-start))
-  echo "Finished scp of image to the build cache server in ${runtime} seconds"  
+  echo "Finished scp of image to the build cache server in ${runtime} seconds"
+  echo "Cleaning up saved build cache..."
+  rm image-with-history.tar
+  echo "Done."
 fi
 
 
