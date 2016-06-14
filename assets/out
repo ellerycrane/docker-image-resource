@@ -163,6 +163,15 @@ if [ "$need_tag_as_latest" = "true" ] && [ "${tag_name}" != "latest"  ]    ; the
   echo "${repository}:${tag_name} tagged as latest"
 fi
 
+jq -n "{
+  version: {
+    digest: $(echo $digest | jq -R .)
+  },
+  metadata: [
+    { name: \"image\", value: $(echo $image_id | head -c 12 | jq -R .) }
+  ]
+}" >&3
+
 if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
   echo "Beginning docker save to preserve docker build cache."
   start=`date +%s`
@@ -183,12 +192,3 @@ if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build
 fi
 
 echo "Trying to finish the script now"
-
-jq -n "{
-  version: {
-    digest: $(echo $digest | jq -R .)
-  },
-  metadata: [
-    { name: \"image\", value: $(echo $image_id | head -c 12 | jq -R .) }
-  ]
-}" >&3
