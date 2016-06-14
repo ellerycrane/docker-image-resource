@@ -2,6 +2,7 @@
 # vim: set ft=sh
 
 set -e
+set -o xtrace
 
 exec 3>&1 # make stdout available as fd 3 for the result
 exec 1>&2 # redirect all output to stderr for logging
@@ -181,6 +182,7 @@ if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build
   echo "Done."
 fi
 
+echo "Trying to finish the script now"
 
 jq -n "{
   version: {
