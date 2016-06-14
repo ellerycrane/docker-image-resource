@@ -189,7 +189,6 @@ if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build
   echo "Cleaning up saved build cache..."
   rm image-with-history.tar
   echo "Done."
+  echo "Here is the host ip:"
+  ip route | grep default | head -n1 | awk '{print $3}'
 fi
-
-echo "Trying to finish the script now"
-exit 0

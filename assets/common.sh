@@ -1,3 +1,5 @@
+export TMPDIR=${TMPDIR:-/tmp}
+
 sanitize_cgroups() {
   mkdir -p /sys/fs/cgroup
   mountpoint -q /sys/fs/cgroup || \
@@ -73,6 +75,11 @@ start_docker() {
 }
 
 stop_docker() {
+  local private_key_path=$TMPDIR/build-cache-private-key
+  if [ -s $private_key_path ]; then
+    kill $SSH_AGENT_PID
+  fi
+
   local pid=$(cat /tmp/docker.pid)
   if [ -z "$pid" ]; then
     return 0
@@ -145,8 +152,6 @@ docker_pull() {
   exit 1
 }
 
-export TMPDIR=${TMPDIR:-/tmp}
-
 load_pubkey() {
   local private_key_path=$TMPDIR/build-cache-private-key
 
@@ -156,7 +161,7 @@ load_pubkey() {
     chmod 0600 $private_key_path
 
     eval $(ssh-agent) >/dev/null 2>&1
-    trap "kill $SSH_AGENT_PID" 0
+    # trap "kill $SSH_AGENT_PID" 0
 
     SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add $private_key_path >/dev/null
 
