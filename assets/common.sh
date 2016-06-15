@@ -173,3 +173,70 @@ EOF
     chmod 0600 ~/.ssh/config
   fi
 }
+
+export_build_cache() {
+  local build_cache_host=$(jq -r '.source.build_cache.host // ""' < $1)
+  local build_cache_port=$(jq -r '.source.build_cache.port // ""' < $1)
+  local build_cache_user=$(jq -r '.source.build_cache.user // ""' < $1)
+  local build_cache_private_key=$(jq -r '.source.build_cache.private_key // ""' < $1)
+  local build_cache_remote_path=$(jq -r '.source.build_cache.remote_path // ""' < $1)
+  local repository=$(jq -r '.source.repository // ""' < $1)
+  local tag_name="${2}"
+  local image_id="${3}"
+
+  if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
+    echo "Beginning docker save to preserve docker build cache."
+    start=`date +%s`
+    docker save $image_id $(docker history -q $image_id | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') > image-with-history.tar
+    end=`date +%s`
+    runtime=$((end-start))
+    echo "Finished docker save in ${runtime} seconds"
+    echo "Beginning scp of image with build cache to build cache server.."
+    start=`date +%s`
+    ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "mkdir -p ${build_cache_remote_path}/${repository}"
+    scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}
+    end=`date +%s`
+    runtime=$((end-start))
+    echo "Finished scp of image to the build cache server in ${runtime} seconds"
+    echo "Cleaning up saved build cache..."
+    rm image-with-history.tar
+    echo "Done."
+    echo "Here is the host ip:"
+    ip route | grep default | head -n1 | awk '{print $3}'
+    echo "Here is the tag_name: ${tag_name}"
+  fi
+}
+
+import_build_cache() {
+  local build_cache_host=$(jq -r '.source.build_cache.host // ""' < $1)
+  local build_cache_port=$(jq -r '.source.build_cache.port // ""' < $1)
+  local build_cache_user=$(jq -r '.source.build_cache.user // ""' < $1)
+  local build_cache_private_key=$(jq -r '.source.build_cache.private_key // ""' < $1)
+  local build_cache_remote_path=$(jq -r '.source.build_cache.remote_path // ""' < $1)
+  local repository=$(jq -r '.source.repository // ""' < $1)
+  local tag_name="${2}"
+
+  if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
+    echo "Checking if a build build cache image for repo ${repository} and tag ${tag_name} exists on the build cache server.."
+    cache_exists="$(ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "/bin/bash -c 'if [ -f \"${build_cache_remote_path}/${repository}/image-with-history.tar\" ]; then echo \"exists\"; else echo \"\"; fi'")"
+    if [ -n "$cache_exists" ]; then
+      echo "Build cache image exists; downloading it from build cache server."
+      start=`date +%s`
+      scp -P ${build_cache_port} ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}/image-with-history.tar ./image-with-history.tar
+      end=`date +%s`
+      runtime=$((end-start))
+      echo "Finished scp of image from the build cache server in ${runtime} seconds."
+      echo "Performing docker load on the build cache image..."
+      start=`date +%s`
+      docker load -i image-with-history.tar
+      end=`date +%s`
+      runtime=$((end-start))
+      echo "Build cache image loaded in ${runtime} seconds."
+      echo "Removing build cache image.."
+      rm image-with-history.tar
+      echo "Build cache image removed."
+    else
+      echo "No build cache history exists; skipping cache load."
+    fi
+  fi
+}
