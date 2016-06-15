@@ -36,12 +36,6 @@ password=$(jq -r '.source.password // ""' < $payload)
 email=$(jq -r '.source.email // ""' < $payload)
 repository=$(jq -r '.source.repository // ""' < $payload)
 
-build_cache_host=$(jq -r '.source.build_cache.host // ""' < $payload)
-build_cache_port=$(jq -r '.source.build_cache.port // ""' < $payload)
-build_cache_user=$(jq -r '.source.build_cache.user // ""' < $payload)
-build_cache_private_key=$(jq -r '.source.build_cache.private_key // ""' < $payload)
-build_cache_remote_path=$(jq -r '.source.build_cache.remote_path // ""' < $payload)
-
 load_pubkey $payload
 
 if private_registry "${repository}" ; then
@@ -58,7 +52,6 @@ tag_source=$(jq -r '.source.tag // "latest"' < $payload)
 tag_params=$(jq -r '.params.tag // ""' < $payload)
 tag_prefix=$(jq -r '.params.tag_prefix // ""' < $payload)
 need_tag_as_latest=$(jq -r '.params.tag_as_latest // "false"' < $payload)
-
 
 tag_name=""
 if [ -n "$tag_params" ]; then
@@ -106,30 +99,6 @@ if [ -n "$load_base" ]; then
 fi
 
 import_build_cache $payload "$tag_name"
-
-#if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
-#  echo "Checking if a build build cache image for repo ${repository} exists on the build cache server.."
-#  cache_exists="$(ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "/bin/bash -c 'if [ -f \"${build_cache_remote_path}/${repository}/image-with-history.tar\" ]; then echo \"exists\"; else echo \"\"; fi'")"
-#  if [ -n "$cache_exists" ]; then
-#    echo "Build cache image exists; downloading it from build cache server."
-#    start=`date +%s`
-#    scp -P ${build_cache_port} ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}/image-with-history.tar ./image-with-history.tar
-#    end=`date +%s`
-#    runtime=$((end-start))
-#    echo "Finished scp of image from the build cache server in ${runtime} seconds."
-#    echo "Performing docker load on the build cache image..."
-#    start=`date +%s`
-#    docker load -i image-with-history.tar
-#    end=`date +%s`
-#    runtime=$((end-start))
-#    echo "Build cache image loaded in ${runtime} seconds."
-#    echo "Removing build cache image.."
-#    rm image-with-history.tar
-#    echo "Build cache image removed."
-#  else
-#    echo "No build cache history exists; skipping cache load."
-#  fi
-#fi
 
 if [ -n "$build" ]; then
   if [ "$cache" = "true" ]; then
@@ -200,24 +169,3 @@ jq -n "{
 
 
 export_build_cache $payload "$tag_name" "$image_id"
-#
-#if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
-#  echo "Beginning docker save to preserve docker build cache."
-#  start=`date +%s`
-#  docker save $image_id $(docker history -q $image_id | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') > image-with-history.tar
-#  end=`date +%s`
-#  runtime=$((end-start))
-#  echo "Finished docker save in ${runtime} seconds"
-#  echo "Beginning scp of image with build cache to build cache server.."
-#  start=`date +%s`
-#  ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "mkdir -p ${build_cache_remote_path}/${repository}"
-#  scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}
-#  end=`date +%s`
-#  runtime=$((end-start))
-#  echo "Finished scp of image to the build cache server in ${runtime} seconds"
-#  echo "Cleaning up saved build cache..."
-#  rm image-with-history.tar
-#  echo "Done."
-#  echo "Here is the host ip:"
-#  ip route | grep default | head -n1 | awk '{print $3}'
-#fi
