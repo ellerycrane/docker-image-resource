@@ -174,12 +174,24 @@ EOF
   fi
 }
 
+
+extract_build_cache_host() {
+  local build_cache_host_config=$(jq -r '.source.build_cache.host // ""' < $1)
+  local build_cache_host=""
+  if [ -n "$build_cache_host_config" ]; then
+    build_cache_host="$build_cache_host_config"
+  else
+    build_cache_host=$(ip route | grep default | head -n1 | awk '{print $3}')
+  fi
+  echo "${build_cache_host}"
+}
+
 export_build_cache() {
-  local build_cache_host=$(jq -r '.source.build_cache.host // ""' < $1)
-  local build_cache_port=$(jq -r '.source.build_cache.port // ""' < $1)
+  local build_cache_port=$(jq -r '.source.build_cache.port // "22"' < $1)
   local build_cache_user=$(jq -r '.source.build_cache.user // ""' < $1)
   local build_cache_private_key=$(jq -r '.source.build_cache.private_key // ""' < $1)
   local build_cache_remote_path=$(jq -r '.source.build_cache.remote_path // ""' < $1)
+  local build_cache_host="$(extract_build_cache_host $1)"
   local repository=$(jq -r '.source.repository // ""' < $1)
   local tag_name="${2}"
   local image_id="${3}"
@@ -208,11 +220,11 @@ export_build_cache() {
 }
 
 import_build_cache() {
-  local build_cache_host=$(jq -r '.source.build_cache.host // ""' < $1)
-  local build_cache_port=$(jq -r '.source.build_cache.port // ""' < $1)
+  local build_cache_port=$(jq -r '.source.build_cache.port // "22"' < $1)
   local build_cache_user=$(jq -r '.source.build_cache.user // ""' < $1)
   local build_cache_private_key=$(jq -r '.source.build_cache.private_key // ""' < $1)
   local build_cache_remote_path=$(jq -r '.source.build_cache.remote_path // ""' < $1)
+  local build_cache_host="$(extract_build_cache_host $1)"
   local repository=$(jq -r '.source.repository // ""' < $1)
   local tag_name="${2}"
 
