@@ -102,7 +102,11 @@ import_build_cache $payload "$tag_name"
 
 if [ -n "$build" ]; then
   if [ "$cache" = "true" ]; then
+    start=`date +%s`
     docker_pull "${repository}:${tag_name}"
+    end=`date +%s`
+    runtime=$((end-start))
+    echo "Docker pull to prime cache finished in ${runtime} seconds."
   fi
 
   if [ -n "$dockerfile" ]; then

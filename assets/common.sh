@@ -161,7 +161,6 @@ load_pubkey() {
     chmod 0600 $private_key_path
 
     eval $(ssh-agent) >/dev/null 2>&1
-    # trap "kill $SSH_AGENT_PID" 0
 
     SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add $private_key_path >/dev/null
 
@@ -181,6 +180,7 @@ extract_build_cache_host() {
   if [ -n "$build_cache_host_config" ]; then
     build_cache_host="$build_cache_host_config"
   else
+    echo "No build_cache host specified; detecting container host instead."
     build_cache_host=$(ip route | grep default | head -n1 | awk '{print $3}')
   fi
   echo "${build_cache_host}"
@@ -199,7 +199,7 @@ export_build_cache() {
   if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
     echo "Beginning docker save to preserve docker build cache."
     start=`date +%s`
-    docker save $image_id $(docker history -q $image_id | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') > image-with-history.tar
+    docker save "${repository}:${tag_name}" $(docker history -q "${repository}:${tag_name}" | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') > image-with-history.tar
     end=`date +%s`
     runtime=$((end-start))
     echo "Finished docker save in ${runtime} seconds"
@@ -212,10 +212,7 @@ export_build_cache() {
     echo "Finished scp of image to the build cache server in ${runtime} seconds"
     echo "Cleaning up saved build cache..."
     rm image-with-history.tar
-    echo "Done."
-    echo "Here is the host ip:"
-    ip route | grep default | head -n1 | awk '{print $3}'
-    echo "Here is the tag_name: ${tag_name}"
+    echo "Done."    
   fi
 }
 
