@@ -199,7 +199,7 @@ export_build_cache() {
   if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
     echo "Beginning docker save to preserve docker build cache."
     start=`date +%s`
-    docker save "${repository}:${tag_name}" $(docker history -q "${repository}:${tag_name}" | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') > image-with-history.tar
+    docker save "${repository}:${tag_name}" $(docker history -q "${repository}:${tag_name}" | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') "$image_id" > image-with-history.tar
     end=`date +%s`
     runtime=$((end-start))
     echo "Finished docker save in ${runtime} seconds"

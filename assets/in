@@ -58,7 +58,8 @@ if [ "$skip_download" = "false" ]; then
   docker_pull "$image_name"
 
   if [ "$save" = "true" ]; then
-    docker save -o ${destination}/image "$image_name"
+    docker tag "$image_name" "${repository}:${tag}"
+    docker save -o ${destination}/image "$image_name" "${repository}:${tag}"
   fi
 
   docker run \
