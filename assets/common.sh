@@ -207,7 +207,7 @@ export_build_cache() {
     echo "Beginning scp of image with build cache to build cache server.."
     start=`date +%s`
     ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "mkdir -p ${build_cache_remote_path}/${repository}"
-    scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}/${tag_name}
+    scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}/${tag_name}/image-with-history.tar
     end=`date +%s`
     runtime=$((end-start))
     echo "Finished scp of image to the build cache server in ${runtime} seconds"
