@@ -198,6 +198,7 @@ export_build_cache() {
 
   if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
     echo "Beginning docker save to preserve docker build cache."
+    docker tag "$image_id" "${repository}:${tag_name}"
     start=`date +%s`
     docker save "${repository}:${tag_name}" $(docker history -q "${repository}:${tag_name}" | tail -n +2 | grep -v \<missing\> | tr '\n' ' ') "$image_id" > image-with-history.tar
     end=`date +%s`
@@ -206,7 +207,7 @@ export_build_cache() {
     echo "Beginning scp of image with build cache to build cache server.."
     start=`date +%s`
     ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "mkdir -p ${build_cache_remote_path}/${repository}"
-    scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}
+    scp -P ${build_cache_port} image-with-history.tar ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}/${tag_name}
     end=`date +%s`
     runtime=$((end-start))
     echo "Finished scp of image to the build cache server in ${runtime} seconds"
@@ -227,11 +228,11 @@ import_build_cache() {
 
   if [ -n "${build_cache_host}" ] && [ -n "${build_cache_port}" ] && [ -n "${build_cache_user}" ] && [ -n "${build_cache_remote_path}" ]; then
     echo "Checking if a build build cache image for repo ${repository} and tag ${tag_name} exists on the build cache server.."
-    cache_exists="$(ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "/bin/bash -c 'if [ -f \"${build_cache_remote_path}/${repository}/image-with-history.tar\" ]; then echo \"exists\"; else echo \"\"; fi'")"
+    cache_exists="$(ssh ${build_cache_user}@${build_cache_host} -p ${build_cache_port} "/bin/bash -c 'if [ -f \"${build_cache_remote_path}/${repository}/${tag_name}/image-with-history.tar\" ]; then echo \"exists\"; else echo \"\"; fi'")"
     if [ -n "$cache_exists" ]; then
       echo "Build cache image exists; downloading it from build cache server."
       start=`date +%s`
-      scp -P ${build_cache_port} ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}/image-with-history.tar ./image-with-history.tar
+      scp -P ${build_cache_port} ${build_cache_user}@${build_cache_host}:${build_cache_remote_path}/${repository}/${tag_name}/image-with-history.tar ./image-with-history.tar
       end=`date +%s`
       runtime=$((end-start))
       echo "Finished scp of image from the build cache server in ${runtime} seconds."
